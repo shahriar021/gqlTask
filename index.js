@@ -1,9 +1,6 @@
-// Import necessary modules
 import { createObjectCsvWriter } from "csv-writer";
 import { request, gql } from "graphql-request";
-
-// GraphQL endpoint and query
-const endpoint = "https://countries.trevorblades.com/";
+import { graphqlApi, jsonApi } from "./baseApi.js";
 
 const query = gql`
   query {
@@ -15,20 +12,22 @@ const query = gql`
   }
 `;
 
-// Function to fetch countries
-async function fetchCountries() {
+//My 2 api's are in baseApi.js file
+
+// In this function i am fetching all countries.
+const fetchCountries = async () => {
   try {
-    const data = await request(endpoint, query);
+    const data = await request(graphqlApi, query);
     console.log("Fetched Countries:", data.countries);
     return data.countries;
   } catch (error) {
     console.error("Error fetching countries:", error);
     throw error; // Re-throw error for further handling
   }
-}
+};
 
-// Function to post country data to REST API
-async function postCountry(country) {
+// Here i am posting each country.
+const postCountry = async (country) => {
   const postData = {
     title: `Country: ${country.name}`,
     body: `Capital: ${country.capital}, Currency: ${country.currency}`,
@@ -36,7 +35,7 @@ async function postCountry(country) {
   };
 
   try {
-    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+    const response = await fetch(jsonApi, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -61,12 +60,12 @@ async function postCountry(country) {
   } catch (error) {
     console.error("Error posting country:", error);
   }
-}
+};
 
-// Function to retry a request with exponential backoff
-async function retryRequest(postData, retries = 5, delay = 1000) {
+// this fucntion is for retry.here it waits before resolve.
+const retryRequest = async (postData, retries = 5, delay = 1000) => {
   try {
-    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+    const response = await fetch(jsonApi, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -83,14 +82,16 @@ async function retryRequest(postData, retries = 5, delay = 1000) {
   } catch (error) {
     if (retries > 0) {
       console.error(`Retrying... ${retries} attempts left.`);
-      await new Promise((resolve) => setTimeout(resolve, delay)); // Wait before retrying
-      await retryRequest(postData, retries - 1, delay * 2); // Exponential backoff
+      await new Promise((resolve) => setTimeout(resolve, delay)); 
+      await retryRequest(postData, retries - 1, delay * 2); 
     } else {
       console.error("Max retries reached. Failed to post data.");
     }
   }
-}
+};
 
+//here i have used the package npm i csv-writer
+//first it creats the csv and records all data of country.
 const csvWriter = createObjectCsvWriter({
   path: "countries.csv",
   header: [
@@ -100,23 +101,28 @@ const csvWriter = createObjectCsvWriter({
   ],
 });
 
-async function saveToCSV(countries) {
+const saveToCSV = async (countries) => {
   try {
     await csvWriter.writeRecords(countries);
     console.log("CSV file saved successfully.");
   } catch (error) {
     console.error("Error saving to CSV:", error);
   }
-}
+};
 
-// Main function to fetch and post country
+// This is the main function.All starts from here.Let me tell you the flow.
+//First of all it calls the fetchCountries() and the it shows all the data.
+//Then it calls saveToCSV() based on a condition if there are any data of countries
+//Then starts the postCountry with a loop which is totally an automation ,no need to manually post any country
+//no need to check any error,if its 403 then it skip and if it s 500 it calls the retryRequest()
+//finaly the postCountry() will show the success or failure message.
 async function main() {
   try {
     const countries = await fetchCountries();
     if (countries && countries.length > 0) {
       await saveToCSV(countries);
       for (let country of countries) {
-        await postCountry(country); // Post each country
+        await postCountry(country);
       }
     } else {
       console.log("No countries to post.");
@@ -126,7 +132,4 @@ async function main() {
   }
 }
 
-main();
-
-// Start the process
 main();
