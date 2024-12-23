@@ -22,7 +22,7 @@ const fetchCountries = async () => {
     return data.countries;
   } catch (error) {
     console.error("Error fetching countries:", error);
-    throw error; // Re-throw error for further handling
+    throw error;
   }
 };
 
@@ -82,8 +82,8 @@ const retryRequest = async (postData, retries = 5, delay = 1000) => {
   } catch (error) {
     if (retries > 0) {
       console.error(`Retrying... ${retries} attempts left.`);
-      await new Promise((resolve) => setTimeout(resolve, delay)); 
-      await retryRequest(postData, retries - 1, delay * 2); 
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      await retryRequest(postData, retries - 1, delay * 2);
     } else {
       console.error("Max retries reached. Failed to post data.");
     }
